@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "designsphere-449012",
+  "private_key_id": "0f316c3be44bc603d5cb27b751718bdda37fc418",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDeAwJtgPc6NxF1\noKD47FhX/Ldhrn9LCfny8NDSxGEuB41W+kOme9q5CralHwAq7/oQgL/S00uANQ+C\nejb65quA11KN4XdZJ8tSXkLRdhr5qH+2MHyVM4qddPPwUPQ9Tlf0W248pVWKLW1T\n7kDeBD3EMQLFtuJvaoi/RNYEZIAZR+LdU62DWsvliBi3bpMmpUgo/3zsh8k2828o\neVbbl68StEe7DwnKvtvnbxqJh9an+WjOtfy+JyBm5d0xvw81J5IikqH5Qda0c4cQ\nA82ob3NeNPOz3x8ZjzP7GCvb7ZAo1nzsJXF/il2s1w9Su+qywrB19yqdy4R1Ys8k\nqwtz0RSDAgMBAAECggEARcw0azDsiQTfHFgPw7KqY580GCXAJ1tPla1YOas70jjV\nms67jg/KR/qySV9hsh4YRC/2HtYHGpuT8LVzq5XxvWP0tF56IzF7nr27zBaRjIQJ\nAsJjqJS3s6EdQCRzZQLIbC6CjdZ8+iAmCwkQo7w5nwC5mmdQ8S5RJ7EAiAkArPFy\nwwcgkAJ9xxW9Wn6teqIulfNp4mwNn+pfLnw43kLUP+PoyTcGx0dof0TQDL5Q1uL7\nVjZu3yXFTFFyoIIlZ8PK+xhL6I3oayrnfGssYXNxRe3JxDS1YM5A2/imUqPg+8/J\nv9ve29669cFCnJ+UV/NmBe3TKzeDnvxNlqa7JXbZIQKBgQD3mCkwWrJlfeqjhN1R\nN6fD4qftQhV9HLX8lti+sET+z7g/3Juf5+qEORL5K4CGsTWd1jEI4ht7e5sr/bC3\nr0NU627qWCjaInA5zv/sNWJ8eIkLtH5T+HVPyMUWdCTOgcG61US6UMcqFLd3UiWl\nB7jX99K4EkAFcUTNyFH1SmwfVQKBgQDljIKpAQ80iXdVSa1WfiC8+tMECcuBrbKA\nBtM+7bMsRtvqrn5Y9bAdWc4yvh4BUzUUQxh+5eC/lOFxUNJ6/ALrRoFpl1WCDHrY\nRU5R6SNLkT6ScM90Ixf7bZjIbisEJ2UAtvA806TzB3JWkywNnQbKHPuIDUagrlZo\nGguiD+x0dwKBgEmxPkEoHYTbr2Sv/PdZa1OAOJ8DVkYAr6HYe/Z1nHOC+8H2NVOo\nwUJNgnorGnv8borl335XXfqo1YyIW3qwbYfu8vpI9w/FxEVQeRei5AdMEO4s8JSp\nlLEEfrSqKPJV6IVlSKlztXOu6tRW3OF7pOaS2mLy+58jEWl2P/6UAg5pAoGADVdi\nTLJMEPCgZ+uVUH6aJoGpfAWZt1rCEiDTbEfibwNbSsODgmYdK0eJ7XcRRWBxqFDR\n/qYbrubXR3+8C/vTq5r4cIukI5/YD/PPPoF/VKgHa/l0hTp47VsMUzHb/CzR+P2o\n7tAaOSnIonGBUPU8bMjMcbbb0QDw8rH41R15z7cCgYBSbqMr8YLhHfLS5Lwr2arg\nK8Opzmp4BzWAZlSYjia0Qb8KkM3wm0npXzGHQ5OGlMtMIyXBUTVoR2QGCwL889aA\nFbdtcv0UbBHvIXycXTTvoZsTMlP0EMWaYhf8W6ll7s7CfBL5WYvkCah9cf3XdOcw\n2qv2fUKd2axhdsHGjP0AvA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "designsphere@designsphere-449012.iam.gserviceaccount.com",
+  "client_id": "104236612705001334398",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/designsphere%40designsphere-449012.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
