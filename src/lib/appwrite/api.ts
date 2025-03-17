@@ -247,8 +247,11 @@ export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
 }
 
 // ============================== GET POST BY ID
+// ============================== GET POST BY ID
 export async function getPostById(postId?: string) {
-  if (!postId) throw Error;
+  if (!postId) {
+    throw new Error("Post ID is required");
+  }
 
   try {
     const post = await databases.getDocument(
@@ -257,81 +260,84 @@ export async function getPostById(postId?: string) {
       postId
     );
 
-    if (!post) throw Error;
+    if (!post) {
+      throw new Error(`No post found with ID: ${postId}`);
+    }
 
     return post;
   } catch (error) {
-    console.log(error);
+    console.error("Error while fetching post:", error);
+    throw error; // Re-throw the error for better debugging
   }
 }
 
 // ============================== UPDATE POST
 export async function updatePost(post: IUpdatePost) {
-  const hasFileToUpdate = post.file.length > 0;
+  const hasFileToUpdate = post.file && post.file.length > 0; // Safeguard file check
 
   try {
     let image = {
-      imageUrl: post.imageUrl,
-      imageId: post.imageId,
+      imageUrl: post.imageUrl || "",
+      imageId: post.imageId || "",
     };
 
     if (hasFileToUpdate) {
-      // Upload new file to appwrite storage
       const uploadedFile = await uploadFile(post.file[0]);
-      if (!uploadedFile) throw Error;
+      if (!uploadedFile) {
+        throw new Error("Failed to upload file");
+      }
 
-      // Get new file url
       const fileUrl = getFilePreview(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
-        throw Error;
+        throw new Error("Failed to generate file preview");
       }
 
       image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
     }
 
-    // Convert tags into array
     const tags = post.tags?.replace(/ /g, "").split(",") || [];
 
-    //  Update post
     const updatedPost = await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       post.postId,
       {
-        caption: post.caption,
+        caption: post.caption || "No caption",
         imageUrl: image.imageUrl,
         imageId: image.imageId,
-        location: post.location,
+        location: post.location || "Unknown location",
         tags: tags,
       }
     );
 
-    // Failed to update
     if (!updatedPost) {
-      // Delete new file that has been recently uploaded
       if (hasFileToUpdate) {
         await deleteFile(image.imageId);
       }
-
-      // If no new file uploaded, just throw error
-      throw Error;
+      throw new Error("Failed to update post");
     }
 
-    // Safely delete old file after successful update
     if (hasFileToUpdate) {
       await deleteFile(post.imageId);
     }
 
     return updatedPost;
   } catch (error) {
-    console.log(error);
+    console.error("Error while updating post:", error);
+    throw error; // Re-throw the error for better debugging
   }
 }
 
 // ============================== DELETE POST
 export async function deletePost(postId?: string, imageId?: string) {
-  if (!postId || !imageId) return;
+  if (!postId) {
+    throw new Error("Post ID is required to delete");
+  }
+
+  if (!imageId) {
+    console.warn("Image ID not provided, only deleting the post");
+  }
 
   try {
     const statusCode = await databases.deleteDocument(
@@ -340,13 +346,22 @@ export async function deletePost(postId?: string, imageId?: string) {
       postId
     );
 
-    if (!statusCode) throw Error;
+    if (!statusCode) {
+      throw new Error(`Failed to delete post with ID: ${postId}`);
+    }
 
-    await deleteFile(imageId);
+    if (imageId) {
+      try {
+        await deleteFile(imageId);
+      } catch (deleteError) {
+        console.warn("Failed to delete associated image file:", deleteError);
+      }
+    }
 
     return { status: "Ok" };
   } catch (error) {
-    console.log(error);
+    console.error("Error while deleting post:", error);
+    throw error; // Re-throw the error for better debugging
   }
 }
 
