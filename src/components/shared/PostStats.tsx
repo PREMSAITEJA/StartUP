@@ -26,15 +26,29 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   const { mutate: savePost } = useSavePost();
   const { mutate: deleteSavePost } = useDeleteSavedPost();
 
-  const { data: currentUser } = useGetCurrentUser();
+  const { data: currentUser, isLoading, isError } = useGetCurrentUser();
 
-  const savedPostRecord = currentUser?.save.find(
-    (record: Models.Document) => record.post.$id === post.$id
+  useEffect(() => {
+    console.log("currentUser:", currentUser);
+    if (isError) {
+      console.error("Error fetching current user");
+    }
+    if (isLoading) {
+      console.log("Loading current user");
+    }
+  }, [currentUser, isLoading, isError]);
+
+  if (isLoading) {
+    return <div>Loading...</div>; // Or a loading spinner
+  }
+
+  const savedPostRecord = currentUser?.save?.find(
+    (record: Models.Document) => record.post?.$id === post.$id
   );
 
   useEffect(() => {
     setIsSaved(!!savedPostRecord);
-  }, [currentUser]);
+  }, [savedPostRecord]);
 
   const handleLikePost = (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>
@@ -72,8 +86,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
     : "";
 
   return (
-    <div
-      className={`flex justify-between items-center z-20 ${containerStyles}`}>
+    <div className={`flex justify-between items-center z-20 ${containerStyles}`}>
       <div className="flex gap-2 mr-5">
         <img
           src={`${
