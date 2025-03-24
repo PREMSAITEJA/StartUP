@@ -1,5 +1,5 @@
 import { Models } from "appwrite";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 import { checkIsLiked } from "@/lib/utils";
@@ -17,7 +17,7 @@ type PostStatsProps = {
 
 const PostStats = ({ post, userId }: PostStatsProps) => {
   const location = useLocation();
-  const likesList = post.likes.map((user: Models.Document) => user.$id);
+  const likesList = useMemo(() => post.likes.map((user: Models.Document) => user.$id), [post.likes]);
 
   const [likes, setLikes] = useState<string[]>(likesList);
   const [isSaved, setIsSaved] = useState(false);
@@ -26,25 +26,13 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   const { mutate: savePost } = useSavePost();
   const { mutate: deleteSavePost } = useDeleteSavedPost();
 
-  const { data: currentUser, isLoading, isError } = useGetCurrentUser();
+  const { data: currentUser } = useGetCurrentUser();
 
-  useEffect(() => {
-    console.log("currentUser:", currentUser);
-    if (isError) {
-      console.error("Error fetching current user");
-    }
-    if (isLoading) {
-      console.log("Loading current user");
-    }
-  }, [currentUser, isLoading, isError]);
-
-  if (isLoading) {
-    return <div>Loading...</div>; // Or a loading spinner
-  }
-
-  const savedPostRecord = currentUser?.save?.find(
-    (record: Models.Document) => record.post?.$id === post.$id
-  );
+  const savedPostRecord = useMemo(() => {
+    return currentUser?.save?.find(
+      (record: Models.Document) => record.post?.$id === post.$id
+    );
+  }, [currentUser, post.id]);
 
   useEffect(() => {
     setIsSaved(!!savedPostRecord);
@@ -55,16 +43,12 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   ) => {
     e.stopPropagation();
 
-    let likesArray = [...likes];
+    const updatedLikes = likes.includes(userId)
+      ? likes.filter((id) => id !== userId)
+      : [...likes, userId];
 
-    if (likesArray.includes(userId)) {
-      likesArray = likesArray.filter((Id) => Id !== userId);
-    } else {
-      likesArray.push(userId);
-    }
-
-    setLikes(likesArray);
-    likePost({ postId: post.$id, likesArray });
+    setLikes(updatedLikes);
+    likePost({ postId: post.$id, likesArray: updatedLikes });
   };
 
   const handleSavePost = (
@@ -74,16 +58,14 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
     if (savedPostRecord) {
       setIsSaved(false);
-      return deleteSavePost(savedPostRecord.$id);
+      deleteSavePost(savedPostRecord.$id);
+    } else {
+      savePost({ userId: userId, postId: post.$id });
+      setIsSaved(true);
     }
-
-    savePost({ userId: userId, postId: post.$id });
-    setIsSaved(true);
   };
 
-  const containerStyles = location.pathname.startsWith("/profile")
-    ? "w-full"
-    : "";
+  const containerStyles = useMemo(() => location.pathname.startsWith("/profile") ? "w-full" : "", [location.pathname]);
 
   return (
     <div className={`flex justify-between items-center z-20 ${containerStyles}`}>
@@ -97,7 +79,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
           alt="like"
           width={20}
           height={20}
-          onClick={(e) => handleLikePost(e)}
+          onClick={handleLikePost}
           className="cursor-pointer"
         />
         <p className="small-medium lg:base-medium">{likes.length}</p>
@@ -110,7 +92,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
           width={20}
           height={20}
           className="cursor-pointer"
-          onClick={(e) => handleSavePost(e)}
+          onClick={handleSavePost}
         />
       </div>
     </div>
