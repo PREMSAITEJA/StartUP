@@ -1,7 +1,17 @@
-import { ID, Query } from "appwrite";
+import { ID, Query, Client, Account, Databases, Storage, Avatars } from "appwrite"; // Ensure all necessary Appwrite modules are imported
 
-import { appwriteConfig, account, databases, storage, avatars } from "./config";
+import { appwriteConfig } from "./config"; // Assuming appwriteConfig is correctly imported
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
+
+// Initialize Appwrite services (make sure this is done correctly, perhaps in config.ts)
+// If you have these initialized in config.ts, you don't need to re-initialize here,
+// just make sure they are exported and imported correctly.
+// Assuming the imports from "./config" already provide initialized instances:
+const account = new Account(new Client().setEndpoint(appwriteConfig.url).setProject(appwriteConfig.projectId));
+const databases = new Databases(new Client().setEndpoint(appwriteConfig.url).setProject(appwriteConfig.projectId));
+const storage = new Storage(new Client().setEndpoint(appwriteConfig.url).setProject(appwriteConfig.projectId));
+const avatars = new Avatars(new Client().setEndpoint(appwriteConfig.url).setProject(appwriteConfig.projectId));
+
 
 // ============================================================
 // AUTH
@@ -21,12 +31,15 @@ export async function createUserAccount(user: INewUser) {
 
     const avatarUrl = avatars.getInitials(user.name);
 
+    // Note: saveUserToDB expects imageUrl as URL type in its definition,
+    // but avatars.getInitials returns a string. You might need to adjust
+    // the type definition for saveUserToDB or handle this type mismatch.
     const newUser = await saveUserToDB({
       accountId: newAccount.$id,
       name: newAccount.name,
       email: newAccount.email,
       username: user.username,
-      imageUrl: avatarUrl,
+      imageUrl: avatarUrl as unknown as URL, // Cast if avatars returns string and saveUserToDB expects URL object
     });
 
     return newUser;
@@ -37,11 +50,12 @@ export async function createUserAccount(user: INewUser) {
 }
 
 // ============================== SAVE USER TO DB
+// Consider if imageUrl should be string here if avatars.getInitials returns string
 export async function saveUserToDB(user: {
   accountId: string;
   email: string;
   name: string;
-  imageUrl: URL;
+  imageUrl: string; // Changed type to string based on avatars.getInitials likely returning string
   username?: string;
 }) {
   try {
@@ -125,7 +139,7 @@ export async function createPost(post: INewPost) {
 
     if (!uploadedFile) throw Error;
 
-    // Get file url
+    // Get file url (now returns string)
     const fileUrl = getFilePreview(uploadedFile.$id);
     if (!fileUrl) {
       await deleteFile(uploadedFile.$id);
@@ -143,7 +157,7 @@ export async function createPost(post: INewPost) {
       {
         creator: post.userId,
         caption: post.caption,
-        imageUrl: fileUrl,
+        imageUrl: fileUrl, // Now storing the correct URL string
         imageId: uploadedFile.$id,
         location: post.location,
         tags: tags,
@@ -182,17 +196,25 @@ export function getFilePreview(fileId: string) {
     const fileUrl = storage.getFilePreview(
       appwriteConfig.storageId,
       fileId,
-      2000,
-      2000,
-      "top",
-      100
+      2000, // Optional: Adjust width
+      2000, // Optional: Adjust height
+      "top", // Optional: Adjust crop mode
+      100   // Optional: Adjust quality
     );
 
-    if (!fileUrl) throw Error;
+    if (!fileUrl) {
+        // Handle the case where getFilePreview might return null or undefined
+        console.error("getFilePreview returned null for fileId:", fileId);
+        return null;
+    }
 
-    return fileUrl;
+    // **THIS IS THE CRUCIAL MODIFICATION:** Return the URL string using .href
+    return fileUrl.href;
+
   } catch (error) {
-    console.log(error);
+    console.error("Error getting file preview for fileId:", fileId, error);
+    // Return null on error
+    return null;
   }
 }
 
@@ -247,7 +269,6 @@ export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
 }
 
 // ============================== GET POST BY ID
-// ============================== GET POST BY ID
 export async function getPostById(postId?: string) {
   if (!postId) {
     throw new Error("Post ID is required");
@@ -282,11 +303,13 @@ export async function updatePost(post: IUpdatePost) {
     };
 
     if (hasFileToUpdate) {
+      // Upload new file to appwrite storage
       const uploadedFile = await uploadFile(post.file[0]);
       if (!uploadedFile) {
         throw new Error("Failed to upload file");
       }
 
+      // Get new file url (now returns string)
       const fileUrl = getFilePreview(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
@@ -304,7 +327,7 @@ export async function updatePost(post: IUpdatePost) {
       post.postId,
       {
         caption: post.caption || "No caption",
-        imageUrl: image.imageUrl,
+        imageUrl: image.imageUrl, // Now storing the correct URL string
         imageId: image.imageId,
         location: post.location || "Unknown location",
         tags: tags,
@@ -318,9 +341,11 @@ export async function updatePost(post: IUpdatePost) {
       throw new Error("Failed to update post");
     }
 
-    if (hasFileToUpdate) {
-      await deleteFile(post.imageId);
+    // Safely delete old file after successful update if a new file was uploaded
+    if (post.imageId && hasFileToUpdate) {
+        await deleteFile(post.imageId);
     }
+
 
     return updatedPost;
   } catch (error) {
@@ -336,34 +361,36 @@ export async function deletePost(postId?: string, imageId?: string) {
   }
 
   if (!imageId) {
-    console.warn("Image ID not provided, only deleting the post");
+    console.warn("Image ID not provided, only deleting the post document.");
   }
 
   try {
-    const statusCode = await databases.deleteDocument(
+    // Delete the post document
+    await databases.deleteDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       postId
     );
 
-    if (!statusCode) {
-      throw new Error(`Failed to delete post with ID: ${postId}`);
-    }
-
+    // If an imageId was provided, attempt to delete the file from storage
     if (imageId) {
       try {
         await deleteFile(imageId);
-      } catch (deleteError) {
-        console.warn("Failed to delete associated image file:", deleteError);
+        console.log(`Successfully deleted file with ID: ${imageId}`);
+      } catch (deleteFileError) {
+        // Log a warning if file deletion fails, but don't block post deletion
+        console.warn(`Failed to delete associated image file ${imageId}:`, deleteFileError);
       }
     }
 
-    return { status: "Ok" };
+    return { status: "Ok" }; // Indicate success for document deletion
+
   } catch (error) {
-    console.error("Error while deleting post:", error);
-    throw error; // Re-throw the error for better debugging
+    console.error("Error while deleting post document with ID:", postId, error);
+    throw error; // Re-throw the error if document deletion failed
   }
 }
+
 
 // ============================== LIKE / UNLIKE POST
 export async function likePost(postId: string, likesArray: string[]) {
@@ -504,7 +531,7 @@ export async function getUserById(userId: string) {
 
 // ============================== UPDATE USER
 export async function updateUser(user: IUpdateUser) {
-  const hasFileToUpdate = user.file.length > 0;
+  const hasFileToUpdate = user.file && user.file.length > 0;
   try {
     let image = {
       imageUrl: user.imageUrl,
@@ -516,7 +543,7 @@ export async function updateUser(user: IUpdateUser) {
       const uploadedFile = await uploadFile(user.file[0]);
       if (!uploadedFile) throw Error;
 
-      // Get new file url
+      // Get new file url (now returns string)
       const fileUrl = getFilePreview(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
@@ -526,7 +553,7 @@ export async function updateUser(user: IUpdateUser) {
       image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
     }
 
-    //  Update user
+    //  Update user
     const updatedUser = await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCollectionId,
@@ -534,7 +561,7 @@ export async function updateUser(user: IUpdateUser) {
       {
         name: user.name,
         bio: user.bio,
-        imageUrl: image.imageUrl,
+        imageUrl: image.imageUrl, // Now storing the correct URL string
         imageId: image.imageId,
       }
     );
@@ -549,9 +576,9 @@ export async function updateUser(user: IUpdateUser) {
       throw Error;
     }
 
-    // Safely delete old file after successful update
+    // Safely delete old file after successful update if a new file was uploaded
     if (user.imageId && hasFileToUpdate) {
-      await deleteFile(user.imageId);
+        await deleteFile(user.imageId);
     }
 
     return updatedUser;
